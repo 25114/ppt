@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수면 관리 프로그램</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        .section-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+        .section-card:hover {
+            transform: translateY(-2px);
+        }
+        .breathing-circle {
+            width: 150px;
+            height: 150px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            margin: 20px auto;
+            opacity: 0.8;
+            transition: transform 6s ease-in-out, background-color 0.5s ease;
+        }
+        .breathing-circle.breathing {
+            animation: breathe 10s infinite;
+        }
+        @keyframes breathe {
+            0%, 100% {
+                transform: scale(1);
+                background-color: #3b82f6;
+            }
+            40% {
+                transform: scale(1.2);
+                background-color: #10b981;
+            }
+            60% {
+                transform: scale(1.1);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+    <div id="app" class="max-w-4xl mx-auto">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-8 text-center">🌙 수면 최적화 도우미</h1>
+
+        <!-- 인증 및 로딩 상태 표시 -->
+        <div id="authStatus" class="mb-4 text-center text-sm text-gray-500">
+            인증 준비 중...
+        </div>
+
+        <!-- REM 수면 계산기 (기존 조건 1) -->
+        <div class="section-card mb-8">
+            <h2 class="text-2xl font-bold text-indigo-700 mb-4">1. 최적 수면 시간 계산기 (REM 사이클)</h2>
+            <p class="text-sm text-gray-600 mb-4">수면은 약 90분 주기로 이루어집니다. 잠드는 데 걸리는 시간(평균 14분)을 포함하여 최적의 수면 시간을 계산해 드립니다.</p>
+
+            <div class="flex flex-col md:flex-row gap-4 mb-4">
+                <div class="flex-1">
+                    <label for="calcTime" class="block text-sm font-medium text-gray-700">시간 입력</label>
+                    <input type="time" id="calcTime" value="07:00" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="flex-1">
+                    <label for="calcType" class="block text-sm font-medium text-gray-700">계산 기준</label>
+                    <select id="calcType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="wake">일어나야 할 시간</option>
+                        <option value="sleep">자려고 하는 시간</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="calculateSleepCycles()" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition duration-150 shadow-lg shadow-indigo-200/50">
+                최적 시간 계산하기
+            </button>
+
+            <div id="calcResult" class="mt-4 p-3 bg-indigo-50 rounded-lg text-indigo-800 font-medium">
+                계산 기준을 선택하고 시간을 입력해 주세요.
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- New Section: 수면 위생 습관 기록 (추가 기능) -->
+            <div class="section-card">
+                <h2 class="text-2xl font-bold text-teal-700 mb-4">2. 수면 위생 습관 기록 (NEW)</h2>
+                <p class="text-sm text-gray-600 mb-4">수면의 질을 높이는 데 도움이 되는 습관들을 기록하여 관리하세요.</p>
+
+                <div class="space-y-3" id="hygieneChecklist">
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <label for="checkCaffeine" class="text-sm font-medium text-gray-700 flex-1">오후 2시 이후 카페인 X</label>
+                        <input type="checkbox" id="checkCaffeine" class="form-checkbox h-5 w-5 text-teal-600 rounded focus:ring-teal-500">
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <label for="checkExercise" class="text-sm font-medium text-gray-700 flex-1">낮에 충분한 운동 (취침 3시간 전 완료)</label>
+                        <input type="checkbox" id="checkExercise" class="form-checkbox h-5 w-5 text-teal-600 rounded focus:ring-teal-500">
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <label for="checkScreen" class="text-sm font-medium text-gray-700 flex-1">취침 1시간 전 스마트폰/TV X</label>
+                        <input type="checkbox" id="checkScreen" class="form-checkbox h-5 w-5 text-teal-600 rounded focus:ring-teal-500">
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <label for="checkMeal" class="text-sm font-medium text-gray-700 flex-1">취침 2시간 전 과식 X</label>
+                        <input type="checkbox" id="checkMeal" class="form-checkbox h-5 w-5 text-teal-600 rounded focus:ring-teal-500">
+                    </div>
+                </div>
+
+                <button onclick="logHygiene()" class="mt-4 w-full bg-teal-600 text-white py-2 rounded-lg font-semibold hover:bg-teal-700 transition duration-150 shadow-lg shadow-teal-200/50">
+                    오늘의 습관 저장하기
+                </button>
+                <div id="hygieneMessage" class="mt-2 text-sm text-center font-medium"></div>
+            </div>
+
+            <!-- 수면 통계 및 릴랙스 기능 (기존 조건 3) -->
+            <div class="section-card">
+                <h2 class="text-2xl font-bold text-purple-700 mb-4">3. 통계, 사운드 및 릴랙스 기능</h2>
+
+                <!-- 수면 통계 (Hygiene Score로 변경) -->
+                <h3 class="text-xl font-semibold text-purple-600 mb-2 border-b pb-1">나의 수면 위생 점수</h3>
+                <div id="statsDisplay" class="p-3 bg-purple-50 rounded-lg text-purple-800 font-medium text-sm space-y-2">
+                    <p>평균 위생 점수: <span id="avgHygieneScore">--</span></p>
+                    <p>최근 7일 연속 성공: <span id="streakCount">--</span></p>
+                    <p class="text-xs text-purple-500 mt-2">최대 10개 기록 기준</p>
+                </div>
+                <button onclick="loadHygieneRecordsAndStats()" class="mt-2 w-full bg-purple-500 text-white py-2 rounded-lg font-semibold hover:bg-purple-600 transition duration-150 text-sm">
+                    최신 기록 새로고침
+                </button>
+
+                <hr class="my-6">
+
+                <!-- 호흡 가이드 (기존 조건 3) -->
+                <h3 class="text-xl font-semibold text-purple-600 mb-2 border-b pb-1">호흡 릴랙스 가이드 (4-7-8)</h3>
+                <div class="text-center">
+                    <div class="breathing-circle" id="breathingCircle"></div>
+                    <div id="breathingInstruction" class="text-lg font-semibold text-gray-700 my-2">시작 버튼을 눌러주세요.</div>
+                    <button id="breathingButton" onclick="toggleBreathingGuide()" class="bg-gray-500 text-white py-2 px-6 rounded-lg font-semibold hover:bg-gray-600 transition duration-150 shadow-lg">
+                        시작
+                    </button>
+                </div>
+                
+                <hr class="my-6">
+
+                <!-- 수면 유도 사운드 (NEW 추가 기능) -->
+                <h3 class="text-xl font-semibold text-pink-600 mb-2 border-b pb-1">수면 유도 사운드 (백색 소음)</h3>
+                <div class="text-center">
+                    <p id="soundStatus" class="text-sm text-gray-700 mb-3">소리가 재생되지 않고 있습니다.</p>
+                    <button id="soundButton" onclick="toggleSleepSound()" class="bg-pink-500 text-white py-2 px-6 rounded-lg font-semibold hover:bg-pink-600 transition duration-150 shadow-lg">
+                        백색 소음 재생
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 수면 기록 목록 (Hygiene Record로 변경) -->
+        <div class="section-card mt-8">
+            <h2 class="text-2xl font-bold text-gray-700 mb-4">4. 최근 위생 습관 기록</h2>
+            <div id="recordsList" class="space-y-3">
+                <p class="text-gray-500">기록된 위생 습관 데이터가 여기에 표시됩니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, query, where, addDoc, setDoc, getDoc, getDocs, onSnapshot, orderBy, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase 글로벌 변수 설정
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, db, auth, userId = null;
+        let isAuthReady = false;
+
+        setLogLevel('Debug');
+
+        /**
+         * Firebase를 초기화하고 사용자 인증을 처리합니다.
+         */
+        async function initializeFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                    document.getElementById('authStatus').textContent = "⚠️ Firebase 설정이 없습니다. 데이터 저장이 불가능합니다.";
+                    return;
+                }
+
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                document.getElementById('authStatus').textContent = "사용자 인증 중...";
+
+                // 인증 상태 변경 리스너 설정
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('authStatus').textContent = `✅ 인증 완료. 사용자 ID: ${userId.substring(0, 8)}...`;
+                        isAuthReady = true;
+                        window.db = db;
+                        window.auth = auth;
+                        window.userId = userId;
+                        window.loadHygieneRecordsAndStats(); // 인증 후 데이터 로드
+                        window.loadDailyHygiene(); // 오늘 기록 불러오기
+                    } else {
+                        userId = null;
+                        document.getElementById('authStatus').textContent = "⚠️ 인증 실패. 익명 로그인 시도 중...";
+                    }
+                });
+
+                // 사용자 정의 토큰 또는 익명 로그인 시도
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+            } catch (error) {
+                console.error("Firebase 초기화 또는 인증 오류:", error);
+                document.getElementById('authStatus').textContent = `❌ 인증 오류: ${error.message}`;
+            }
+        }
+
+        /**
+         * REM 수면 주기에 맞춰 최적의 수면/기상 시간을 계산합니다. (기존 조건 1)
+         * REM 수면 주기: 90분, 잠드는 데 걸리는 시간: 14분 (평균)
+         */
+        window.calculateSleepCycles = function() {
+            const calcTimeInput = document.getElementById('calcTime');
+            const calcTypeInput = document.getElementById('calcType');
+            const resultDiv = document.getElementById('calcResult');
+
+            const timeValue = calcTimeInput.value;
+            const typeValue = calcTypeInput.value;
+
+            if (!timeValue) {
+                resultDiv.textContent = "시간을 입력해 주세요.";
+                return;
+            }
+
+            const now = new Date();
+            const [hours, minutes] = timeValue.split(':').map(Number);
+
+            let targetTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+
+            // 오늘 시간보다 이전이면 내일 시간으로 간주
+            if (targetTime < now) {
+                targetTime.setDate(targetTime.getDate() + 1);
+            }
+
+            const timeToFallAsleep = 14; // 분
+            const sleepCycle = 90; // 분
+            const cycles = [6, 5, 4, 3]; // 권장 수면 사이클
+
+            let suggestions = [];
+
+            cycles.forEach(numCycles => {
+                let calculatedTime;
+                let description;
+
+                if (typeValue === 'wake') {
+                    // 기상 시간 기준: 잠드는 시간 계산
+                    const totalSleepMinutes = (numCycles * sleepCycle) + timeToFallAsleep;
+                    calculatedTime = new Date(targetTime.getTime() - totalSleepMinutes * 60000);
+                    description = `(권장 수면 ${numCycles} 주기)`;
+                } else {
+                    // 취침 시간 기준: 기상 시간 계산
+                    const totalSleepMinutes = (numCycles * sleepCycle) + timeToFallAsleep;
+                    calculatedTime = new Date(targetTime.getTime() + totalSleepMinutes * 60000);
+                    description = `(권장 수면 ${numCycles} 주기)`;
+                }
+
+                // 시간 포맷 (HH:MM AM/PM)
+                const formattedTime = calculatedTime.toLocaleTimeString('ko-KR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                
+                suggestions.push({
+                    time: formattedTime,
+                    description: description,
+                    date: calculatedTime.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })
+                });
+            });
+
+            let html = `<p class="font-bold mb-2">최적의 수면 시간 제안:</p>`;
+            
+            if (typeValue === 'wake') {
+                html += `<p class="text-sm">입력된 기상 시간: <strong>${timeValue}</strong></p>`;
+                html += `<ul class="list-disc list-inside mt-2 space-y-1">`;
+                suggestions.forEach(s => {
+                    html += `<li><strong>${s.time}</strong> (${s.date})에 잠드시면 ${s.description} 후 가장 개운하게 일어나실 수 있습니다.</li>`;
+                });
+                html += `</ul>`;
+            } else {
+                html += `<p class="text-sm">입력된 취침 시간: <strong>${timeValue}</strong></p>`;
+                html += `<ul class="list-disc list-inside mt-2 space-y-1">`;
+                suggestions.forEach(s => {
+                    html += `<li><strong>${s.time}</strong> (${s.date})에 일어나시면 ${s.description} 후 가장 개운하게 일어나실 수 있습니다.</li>`;
+                });
+                html += `</ul>`;
+            }
+            
+            html += `<p class="mt-3 text-xs text-gray-600">⚠ 본 계산은 평균치(잠드는 시간 14분, 수면 주기 90분)를 기반으로 합니다. 개인차에 따라 달라질 수 있습니다.</p>`;
+            resultDiv.innerHTML = html;
+        }
+
+
+        /**
+         * 수면 위생 습관을 Firebase Firestore에 저장합니다. (New Feature)
+         */
+        window.logHygiene = async function() {
+            if (!isAuthReady || !db || !userId) {
+                alertModal("로그인 대기 중입니다. 잠시 후 다시 시도해 주세요.", "오류");
+                return;
+            }
+
+            const logMessage = document.getElementById('hygieneMessage');
+            const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (문서 ID로 사용)
+
+            const hygieneData = {
+                caffeine: document.getElementById('checkCaffeine').checked,
+                exercise: document.getElementById('checkExercise').checked,
+                screen: document.getElementById('checkScreen').checked,
+                meal: document.getElementById('checkMeal').checked,
+                score: [
+                    document.getElementById('checkCaffeine').checked,
+                    document.getElementById('checkExercise').checked,
+                    document.getElementById('checkScreen').checked,
+                    document.getElementById('checkMeal').checked
+                ].filter(Boolean).length, // 4점 만점
+                loggedDate: today,
+                loggedAt: serverTimestamp()
+            };
+
+            logMessage.className = 'mt-2 text-sm text-center font-medium text-blue-500';
+            logMessage.textContent = "기록 저장 중...";
+
+            try {
+                // setDoc을 사용하여 문서 ID를 날짜(today)로 고정하여 덮어쓰기 (Upsert)
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/hygiene_records`, today);
+                await setDoc(docRef, hygieneData);
+
+                logMessage.className = 'mt-2 text-sm text-center font-medium text-green-500';
+                logMessage.textContent = `✅ ${today}의 수면 습관 기록 완료! (점수: ${hygieneData.score}점)`;
+
+                loadHygieneRecordsAndStats(); // 통계 및 목록 새로고침
+
+            } catch (e) {
+                console.error("Firestore에 위생 기록 저장 실패:", e);
+                logMessage.className = 'mt-2 text-sm text-center font-medium text-red-500';
+                logMessage.textContent = `❌ 기록 저장 실패: ${e.message}`;
+            }
+        }
+        
+        /**
+         * 오늘 저장된 위생 기록이 있다면 체크박스 상태를 불러옵니다.
+         */
+        window.loadDailyHygiene = async function() {
+            if (!isAuthReady || !db || !userId) return;
+
+            const today = new Date().toISOString().slice(0, 10);
+            
+            try {
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/hygiene_records`, today);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('checkCaffeine').checked = data.caffeine || false;
+                    document.getElementById('checkExercise').checked = data.exercise || false;
+                    document.getElementById('checkScreen').checked = data.screen || false;
+                    document.getElementById('checkMeal').checked = data.meal || false;
+                    document.getElementById('hygieneMessage').className = 'mt-2 text-sm text-center font-medium text-gray-500';
+                    document.getElementById('hygieneMessage').textContent = `🗓️ ${today} 기록을 불러왔습니다. (점수: ${data.score}점)`;
+                } else {
+                    // 기록이 없으면 체크박스 초기화
+                    document.getElementById('checkCaffeine').checked = false;
+                    document.getElementById('checkExercise').checked = false;
+                    document.getElementById('checkScreen').checked = false;
+                    document.getElementById('checkMeal').checked = false;
+                    document.getElementById('hygieneMessage').textContent = `오늘의 기록이 아직 없습니다.`;
+                }
+            } catch (e) {
+                console.error("오늘의 위생 기록 로드 실패:", e);
+            }
+        }
+
+
+        /**
+         * 위생 기록을 불러와 통계를 계산하고 화면에 표시합니다. (수면 품질/시간 기록 대신 사용)
+         */
+        window.loadHygieneRecordsAndStats = async function() {
+            if (!isAuthReady || !db || !userId) {
+                document.getElementById('avgHygieneScore').textContent = '인증 대기 중...';
+                document.getElementById('streakCount').textContent = '인증 대기 중...';
+                return;
+            }
+            
+            const statsDisplay = document.getElementById('statsDisplay');
+            statsDisplay.innerHTML = `<p class="text-center">데이터 로드 중...</p>`;
+            
+            const recordsList = document.getElementById('recordsList');
+            recordsList.innerHTML = '';
+            
+            try {
+                const recordsColRef = collection(db, `artifacts/${appId}/users/${userId}/hygiene_records`);
+                
+                const q = query(recordsColRef);
+                const querySnapshot = await getDocs(q);
+
+                let totalScore = 0;
+                let records = [];
+                
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    records.push(data);
+                });
+
+                // 날짜(loggedDate) 기준 내림차순 정렬
+                records.sort((a, b) => (b.loggedDate || '').localeCompare(a.loggedDate || ''));
+                
+                const latestRecords = records.slice(0, 10);
+                
+                // 통계 계산
+                latestRecords.forEach(data => {
+                    totalScore += data.score || 0;
+                });
+
+                const count = latestRecords.length;
+                
+                if (count === 0) {
+                    statsDisplay.innerHTML = `<p>기록된 데이터가 없습니다.</p>`;
+                    recordsList.innerHTML = `<p class="text-gray-500">기록된 위생 습관 데이터가 없습니다.</p>`;
+                    return;
+                }
+
+                const avgScore = totalScore / count;
+                
+                // 연속 기록 (Streak) 계산: 최근 7일 중 만점(4점) 기록 수 계산
+                let streak = 0;
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const recentDates = [];
+                
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    recentDates.push(d.toISOString().slice(0, 10));
+                }
+                
+                const recentScores = records.filter(r => recentDates.includes(r.loggedDate));
+                recentScores.sort((a, b) => b.loggedDate.localeCompare(a.loggedDate)); // 내림차순 정렬
+
+                // 연속된 날짜에 4점인지 확인
+                let tempStreak = 0;
+                for (const date of recentDates) {
+                    const record = recentScores.find(r => r.loggedDate === date);
+                    if (record && record.score === 4) {
+                        tempStreak++;
+                    } else if (record && record.score !== 4) {
+                        // 만점 실패 시 연속 기록 끊김 (만점을 연속 성공 기준으로 설정)
+                        tempStreak = 0;
+                    } else if (date < todayStr) {
+                         // 오늘 이전 날짜에 기록이 없으면 연속 기록 끊김
+                        break; 
+                    }
+                    streak = Math.max(streak, tempStreak);
+                }
+                
+
+                statsDisplay.innerHTML = `
+                    <p>평균 위생 점수: <span id="avgHygieneScore" class="font-bold text-lg text-purple-700">${avgScore.toFixed(2)} / 4 점</span></p>
+                    <p>연속 만점 기록: <span id="streakCount" class="font-bold text-lg text-purple-700">${streak} 일</span></p>
+                    <p class="text-xs text-purple-500 mt-2">최신 ${count}개 기록 기준 (4점 만점)</p>
+                `;
+
+                // 기록 목록 표시
+                let listHtml = '';
+                latestRecords.forEach((data, index) => {
+                    const score = data.score || 0;
+                    const scoreEmoji = score === 4 ? '⭐️' : score >= 2 ? '👍' : '🤔';
+                    const scoreColor = score === 4 ? 'bg-green-100 text-green-800' : 
+                                         score >= 2 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800';
+
+                    listHtml += `
+                        <div class="p-3 bg-white border border-gray-200 rounded-lg flex justify-between items-center shadow-sm">
+                            <div>
+                                <p class="text-sm font-semibold">${data.loggedDate} 위생</p>
+                                <p class="text-xs text-gray-600">
+                                    카페인: ${data.caffeine ? 'O' : 'X'} | 
+                                    운동: ${data.exercise ? 'O' : 'X'} | 
+                                    스크린: ${data.screen ? 'O' : 'X'} | 
+                                    과식: ${data.meal ? 'O' : 'X'}
+                                </p>
+                            </div>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-bold ${scoreColor}">${scoreEmoji} ${score} / 4</span>
+                        </div>
+                    `;
+                });
+                recordsList.innerHTML = listHtml;
+
+
+            } catch (e) {
+                console.error("위생 기록 로드 실패:", e);
+                statsDisplay.innerHTML = `<p class="text-red-500">기록 로드 실패: ${e.message}</p>`;
+            }
+        }
+        
+        // --- 호흡 가이드 기능 (기존 조건 3) ---
+        let breathingInterval = null;
+        let isBreathing = false;
+        const breathingCircle = document.getElementById('breathingCircle');
+        const breathingInstruction = document.getElementById('breathingInstruction');
+        const breathingButton = document.getElementById('breathingButton');
+        const instructionMap = [
+            { text: "들이마시기 (4초)", duration: 4000, next: 1, action: "scale(1.2)" },
+            { text: "참기 (7초)", duration: 7000, next: 2, action: "scale(1.15)" },
+            { text: "내쉬기 (8초)", duration: 8000, next: 0, action: "scale(1)" }
+        ];
+
+        window.toggleBreathingGuide = function() {
+            if (isBreathing) {
+                stopBreathingGuide();
+            } else {
+                startBreathingGuide();
+            }
+        }
+
+        function startBreathingGuide() {
+            if (isBreathing) return;
+            isBreathing = true;
+            breathingButton.textContent = "중지";
+            breathingButton.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+            breathingButton.classList.add('bg-red-500', 'hover:bg-red-600');
+            breathingCircle.classList.add('breathing');
+            
+            let step = 0;
+            
+            // 초기 텍스트 설정
+            breathingInstruction.textContent = instructionMap[0].text;
+            
+            function cycle() {
+                const current = instructionMap[step];
+                breathingInstruction.textContent = current.text;
+                step = current.next;
+                
+                if (isBreathing) {
+                    breathingInterval = setTimeout(cycle, current.duration);
+                }
+            }
+            
+            // 전체 19초 주기에 맞춰 CSS 애니메이션을 사용하고, 텍스트는 매 단계마다 변경
+            breathingInterval = setTimeout(cycle, instructionMap[0].duration); // 첫 단계 후 다음 단계 시작
+        }
+
+        function stopBreathingGuide() {
+            isBreathing = false;
+            if (breathingInterval) {
+                clearTimeout(breathingInterval);
+            }
+            breathingButton.textContent = "시작";
+            breathingButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+            breathingButton.classList.add('bg-gray-500', 'hover:bg-gray-600');
+            breathingCircle.classList.remove('breathing');
+            breathingInstruction.textContent = "시작 버튼을 눌러주세요.";
+            breathingCircle.style.transform = 'scale(1)';
+        }
+
+        // --- 수면 유도 사운드 기능 (New Feature) ---
+        let audioContext = null;
+        let noiseSource = null;
+
+        window.toggleSleepSound = function() {
+            const button = document.getElementById('soundButton');
+            const status = document.getElementById('soundStatus');
+
+            try {
+                if (noiseSource) {
+                    // Stop
+                    noiseSource.stop();
+                    noiseSource = null;
+                    button.textContent = "백색 소음 재생";
+                    status.textContent = "소리가 재생되지 않고 있습니다.";
+                    button.classList.remove('bg-red-500', 'hover:bg-red-600');
+                    button.classList.add('bg-pink-500', 'hover:bg-pink-600');
+                } else {
+                    // Start
+                    if (!audioContext) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+
+                    // 백색 소음 생성
+                    noiseSource = audioContext.createBufferSource();
+                    const bufferSize = 2 * audioContext.sampleRate;
+                    const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                    const output = buffer.getChannelData(0);
+
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1; // -1.0에서 1.0 사이의 랜덤 노이즈
+                    }
+
+                    noiseSource.buffer = buffer;
+                    noiseSource.loop = true;
+
+                    // 볼륨 조절 (너무 시끄럽지 않도록)
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime); // 20% 볼륨
+                    
+                    noiseSource.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    noiseSource.start();
+
+                    button.textContent = "소리 끄기";
+                    status.textContent = "🔊 백색 소음이 재생 중입니다. (기기 볼륨 조절 필요)";
+                    button.classList.remove('bg-pink-500', 'hover:bg-pink-600');
+                    button.classList.add('bg-red-500', 'hover:bg-red-600');
+                }
+            } catch (error) {
+                console.error("Sleep Sound Error:", error);
+                alertModal(`오류: 소리 재생을 시작할 수 없습니다. 브라우저 설정을 확인해주세요. (${error.message})`, "사운드 오류");
+                if (noiseSource) noiseSource.stop();
+                noiseSource = null;
+                button.textContent = "백색 소음 재생";
+                status.textContent = "소리가 재생되지 않고 있습니다.";
+                button.classList.remove('bg-red-500', 'hover:bg-red-600');
+                button.classList.add('bg-pink-500', 'hover:bg-pink-600');
+            }
+        }
+
+        // --- 유틸리티 및 초기화 ---
+
+        function alertModal(message, title = "알림") {
+            const existingModal = document.getElementById('customAlert');
+            if (existingModal) existingModal.remove();
+
+            const modalHtml = `
+                <div id="customAlert" class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 transform transition-all">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">${title}</h3>
+                        <p class="text-gray-700 mb-6">${message}</p>
+                        <button onclick="document.getElementById('customAlert').remove()" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition duration-150">확인</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        window.alertModal = alertModal;
+        window.loadSleepRecords = window.loadHygieneRecordsAndStats; // 이전 함수 이름 참조를 새 함수로 연결
+
+        // 페이지 로드 시 Firebase 초기화
+        window.addEventListener('load', initializeFirebase);
+    </script>
+</body>
+</html>
